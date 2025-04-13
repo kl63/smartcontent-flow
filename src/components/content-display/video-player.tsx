@@ -89,7 +89,7 @@ const VideoPlayer: React.FC = () => {
           duration: 10, // 10 seconds video by default
           withAnimation: true,
         },
-        (progress) => {
+        (progress: number) => {
           setProgress(progress);
         }
       );
