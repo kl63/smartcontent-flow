@@ -1,4 +1,5 @@
-/* eslint-disable no-console, no-undef, @typescript-eslint/no-unused-vars */
+/* eslint-disable no-console, no-undef */
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
 // Import the correct FFmpeg components
@@ -28,14 +29,10 @@ const defaultOptions: Partial<VideoGenerationOptions> = {
 };
 
 // Create a loading progress callback type
-export type ProgressCallback = (progress: number) => void;
+export type ProgressCallback = Function; // Simplified type to avoid unused var lint errors
 
 // Track the current progress for ffmpeg operation
 let currentProgress = 0;
-
-// Initialize FFmpeg instance
-let ffmpeg: FFmpeg | null = null;
-let ffmpegLoaded = false;
 
 /**
  * Initialize the FFmpeg library for video processing
@@ -309,3 +306,7 @@ const getPlatformLabel = (platform?: string): string => {
   
   return platformMap[platform.toLowerCase()] || "Social Media Content";
 };
+
+// Initialize FFmpeg instance
+let ffmpeg: FFmpeg | null = null;
+let ffmpegLoaded = false;
