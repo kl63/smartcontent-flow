@@ -1,11 +1,15 @@
 'use client';
 
+/* eslint-disable no-undef */
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useContentStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Download, Share2 } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { generateVideo } from "@/lib/api";
+
+// Check if running in browser environment
+const isBrowser = typeof window !== 'undefined';
 
 const VideoDisplay = () => {
   const { 
@@ -21,107 +25,110 @@ const VideoDisplay = () => {
   // Generate video when audio is successfully generated
   useEffect(() => {
     const createVideo = async () => {
-      if (content.image && content.audio && status.audio === 'success' && status.video === 'generating') {
+      if (
+        content.text && 
+        content.image && 
+        content.audio && 
+        status.audio === 'success' && 
+        status.video === 'generating'
+      ) {
         try {
-          const videoUrl = await generateVideo(content.image, content.audio);
+          const videoUrl = await generateVideo(content.text, content.image, content.audio);
           setContent('video', videoUrl);
           setStatus('video', 'success');
           setCurrentStep(4);
         } catch (error) {
-          console.error('Error generating video:', error);
+          if (isBrowser && window.console) {
+            window.console.error('Error generating video:', error);
+          }
           setStatus('video', 'error');
         }
       }
     };
 
     createVideo();
-  }, [content.image, content.audio, status.audio, status.video]);
+  }, [content.text, content.image, content.audio, status.audio, status.video, setContent, setStatus, setCurrentStep]);
 
   const handleDownload = () => {
-    if (!content.video) return;
+    if (!content.video || !isBrowser) return;
     
-    // Create a temporary link to download the video
-    const link = document.createElement('a');
-    link.href = content.video;
-    link.download = 'ai-generated-video.mp4';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const handleShare = () => {
-    if (!content.video) return;
-    
-    // Use Web Share API if available
-    if (navigator.share) {
-      navigator.share({
-        title: 'Check out my AI-generated content!',
-        text: 'Created with AI Media Maker',
-        url: content.video
-      }).catch(err => {
-        console.error('Error sharing:', err);
-      });
-    } else {
-      // Fallback - copy video URL to clipboard
-      navigator.clipboard.writeText(content.video);
-      alert('Video URL copied to clipboard!');
+    try {
+      // Create a temporary link to download the video
+      const link = document.createElement('a');
+      link.href = content.video;
+      link.download = 'ai-generated-video.mp4';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      if (window.console) {
+        window.console.error('Download error:', error);
+      }
     }
   };
 
-  // Return null if prerequisites aren't met
-  if (!content.image || !content.audio || status.video === 'idle') return null;
+  const handleShare = () => {
+    if (!content.video || !isBrowser) return;
+    
+    try {
+      if (window.navigator.share) {
+        window.navigator.share({
+          title: 'AI Generated Video',
+          text: content.text || 'Check out this AI-generated video!',
+          url: content.video
+        }).catch((error) => {
+          if (window.console) {
+            window.console.error('Error sharing:', error);
+          }
+        });
+      } else {
+        // Fallback for browsers without Web Share API
+        window.navigator.clipboard.writeText(content.video);
+        window.alert('Video URL copied to clipboard! You can now paste it to share with others.');
+      }
+    } catch (error) {
+      if (window.console) {
+        window.console.error('Share error:', error);
+      }
+    }
+  };
+
+  // Return null if not at the video generation step or video is not ready
+  if (status.video !== 'success' || !content.video) return null;
 
   return (
-    <Card className="border border-gray-200 shadow-sm">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg flex items-center justify-between">
-          <span>Final Video</span>
-          <div className="flex gap-2">
-            {content.video && status.video === 'success' && (
-              <>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleShare}
-                  className="h-8 px-2 text-xs"
-                >
-                  <Share2 className="h-4 w-4 mr-1" /> Share
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleDownload}
-                  className="h-8 px-2 text-xs"
-                >
-                  <Download className="h-4 w-4 mr-1" /> Download
-                </Button>
-              </>
-            )}
-          </div>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        {status.video === 'generating' ? (
-          <div className="w-full aspect-video bg-gray-100 rounded-md flex items-center justify-center">
-            <div className="text-[#6B7280]">Creating video...</div>
-          </div>
-        ) : status.video === 'error' ? (
-          <div className="w-full aspect-video bg-gray-100 rounded-md flex items-center justify-center">
-            <div className="text-[#EF4444]">Error creating video. Please try again.</div>
-          </div>
-        ) : content.video ? (
-          <div className="w-full overflow-hidden rounded-md">
+    <div className="space-y-4">
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-xl">Your Generated Video</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {/* Video player with poster image since we're not generating real videos */}
+          <div className="aspect-video w-full overflow-hidden rounded-md">
             <video 
               ref={videoRef}
-              src={content.video} 
               controls
-              className="w-full h-auto"
               poster={content.image || undefined}
-            />
+              className="w-full h-full"
+            >
+              <source src={content.video} type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
           </div>
-        ) : null}
-      </CardContent>
-    </Card>
+          
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button variant="outline" onClick={handleDownload}>
+              <Download className="h-4 w-4 mr-2" />
+              Download
+            </Button>
+            <Button variant="outline" onClick={handleShare}>
+              <Share2 className="h-4 w-4 mr-2" />
+              Share
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
