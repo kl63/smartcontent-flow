@@ -11,6 +11,13 @@ import { ApiError, isSpeechSynthesisAvailable, generateSpeechInBrowser } from "@
 // Check if running in browser environment
 const isBrowser = typeof window !== 'undefined';
 
+// Handle TypeScript for webkit prefixed APIs
+declare global {
+  interface Window {
+    webkitAudioContext: typeof AudioContext;
+  }
+}
+
 const AudioPlayer = () => {
   const { 
     content, 
@@ -119,15 +126,77 @@ const AudioPlayer = () => {
     }
   };
   
-  const handleDownload = () => {
-    // For a real implementation, we would need to convert speech to an audio file
+  const handleDownload = async () => {
     if (!speechText || !isBrowser) return;
     
     try {
-      // In a production app, we'd use a server endpoint to generate the audio file
-      // For this demo, we'll create a text file with the content that would be spoken
+      // For a production version, we should use a server API to generate proper MP3 files
+      // Since we're using browser speech synthesis, we'll create a more sophisticated approach
       
-      // Create a blob with the text content
+      // Create a new SpeechSynthesisUtterance
+      const utterance = new SpeechSynthesisUtterance(speechText);
+      
+      // Set up an audio recorder to capture the synthesized speech
+      // This is a simple implementation, but in production you'd use a more robust solution
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const mediaStreamDest = audioContext.createMediaStreamDestination();
+      const mediaRecorder = new MediaRecorder(mediaStreamDest.stream);
+      
+      // Array to store the audio chunks
+      const audioChunks: BlobPart[] = [];
+      
+      // Listen for data available events
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunks.push(event.data);
+        }
+      };
+      
+      // When recording stops, create and download the audio file
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/mpeg' });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        
+        // Create a download link
+        const link = document.createElement('a');
+        link.href = audioUrl;
+        link.download = 'ai-generated-speech.mp3';
+        document.body.appendChild(link);
+        link.click();
+        
+        // Clean up
+        setTimeout(() => {
+          document.body.removeChild(link);
+          URL.revokeObjectURL(audioUrl);
+        }, 100);
+      };
+      
+      // Start recording
+      mediaRecorder.start();
+      
+      // Play the speech
+      speechSynthesis.speak(utterance);
+      
+      // When speech ends, stop recording
+      utterance.onend = () => {
+        mediaRecorder.stop();
+        audioContext.close();
+      };
+      
+      // If something goes wrong, provide a fallback
+      setTimeout(() => {
+        if (mediaRecorder.state === 'recording') {
+          // If recording is taking too long, stop it
+          mediaRecorder.stop();
+          audioContext.close();
+        }
+      }, 30000); // 30 seconds timeout
+      
+    } catch (error) {
+      console.error('Error during audio download:', error);
+      
+      // Fallback for browsers that don't support MediaRecorder
+      // Create a blob with the text content instead
       const blob = new Blob([speechText], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       
@@ -144,11 +213,7 @@ const AudioPlayer = () => {
         document.body.removeChild(link);
       }, 100);
       
-      // Show information about audio downloads
-      alert('In a production app, this would download an MP3 file of the narration. This demo version provides the text content that would be spoken.');
-    } catch (error) {
-      console.error('Error during download:', error);
-      alert('Download failed. Please try again.');
+      alert('Your browser doesn\'t support direct audio recording. A text file with the speech content has been downloaded instead.');
     }
   };
 

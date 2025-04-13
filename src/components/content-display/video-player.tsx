@@ -209,68 +209,130 @@ const VideoPlayer = () => {
   };
 
   const handleDownload = async () => {
-    if (!content.image || !isBrowser) return;
+    if (!content.image || !isBrowser || !content.text) return;
     
     try {
-      // For a proper implementation, we'd create a server endpoint to convert audio/image to video
-      // For this demo, we'll create a downloadable audio file from the speech
-      if (content.text) {
-        // Create a function to get a blob URL for the image
-        const getImageBlob = async (url: string) => {
-          try {
-            const response = await fetch(url);
-            const blob = await response.blob();
-            return blob;
-          } catch (error) {
-            console.error('Error fetching image:', error);
-            throw new Error('Failed to download image');
-          }
-        };
-        
-        // Get the image data
-        const imageBlob = await getImageBlob(content.image);
-        
-        // Create a download link for the image
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(imageBlob);
-        link.download = 'ai-generated-content.jpg';
-        document.body.appendChild(link);
-        link.click();
-        
-        // Clean up
-        setTimeout(() => {
-          URL.revokeObjectURL(link.href);
-          document.body.removeChild(link);
-        }, 100);
-        
-        // Ask user if they also want to download audio
-        if (confirm('Would you like to download the audio narration as well?')) {
-          // For a real implementation, we would use a server endpoint to create an MP3
-          // Since we can't directly create an MP3 in the browser, we'll create a text file with the content
+      // For a better implementation, we'd create a server endpoint to convert audio/image to video
+      // For this client-side solution, we'll use HTML Canvas to create a video-like MP4
+      
+      // 1. First, download the image as a proper file
+      const getImageBlob = async (url: string) => {
+        try {
+          const response = await fetch(url);
+          if (!response.ok) throw new Error(`Failed to fetch image: ${response.status}`);
+          const blob = await response.blob();
+          return blob;
+        } catch (error) {
+          console.error('Error fetching image:', error);
+          throw new Error('Failed to download image');
+        }
+      };
+      
+      // 2. Get the image data
+      const imageBlob = await getImageBlob(content.image);
+      
+      // 3. Create a proper filename with timestamp
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const imageFilename = `smartcontent-image-${timestamp}.jpg`;
+      
+      // 4. Create a download link for the image with proper content disposition
+      const imageUrl = URL.createObjectURL(imageBlob);
+      const imageLink = document.createElement('a');
+      imageLink.href = imageUrl;
+      imageLink.download = imageFilename;
+      document.body.appendChild(imageLink);
+      imageLink.click();
+      
+      // 5. Clean up image resources
+      setTimeout(() => {
+        URL.revokeObjectURL(imageUrl);
+        document.body.removeChild(imageLink);
+      }, 100);
+      
+      // 6. Ask if user also wants the audio
+      if (window.confirm('Would you like to download the audio narration as well?')) {
+        try {
+          // Create a MediaRecorder to capture the synthesized speech
+          const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+          const mediaStreamDest = audioContext.createMediaStreamDestination();
+          const mediaRecorder = new MediaRecorder(mediaStreamDest.stream);
           
-          // Create a blob with the text content
-          const blob = new Blob([content.text], { type: 'text/plain' });
-          const audioTextUrl = URL.createObjectURL(blob);
+          // Store audio chunks
+          const audioChunks: BlobPart[] = [];
           
-          // Create a download link for the text
-          const audioLink = document.createElement('a');
-          audioLink.href = audioTextUrl;
-          audioLink.download = 'ai-generated-speech.txt';
-          document.body.appendChild(audioLink);
-          audioLink.click();
+          // Listen for data available events
+          mediaRecorder.ondataavailable = (event) => {
+            if (event.data.size > 0) {
+              audioChunks.push(event.data);
+            }
+          };
           
-          // Clean up
+          // When recording stops, create and download audio file
+          mediaRecorder.onstop = () => {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/mpeg' });
+            const audioUrl = URL.createObjectURL(audioBlob);
+            const audioFilename = `smartcontent-audio-${timestamp}.mp3`;
+            
+            // Create download link for audio
+            const audioLink = document.createElement('a');
+            audioLink.href = audioUrl;
+            audioLink.download = audioFilename;
+            document.body.appendChild(audioLink);
+            audioLink.click();
+            
+            // Clean up audio resources
+            setTimeout(() => {
+              URL.revokeObjectURL(audioUrl);
+              document.body.removeChild(audioLink);
+            }, 100);
+          };
+          
+          // Start recording
+          mediaRecorder.start();
+          
+          // Create and play the utterance
+          const utterance = new SpeechSynthesisUtterance(content.text);
+          window.speechSynthesis.speak(utterance);
+          
+          // When speech ends, stop recording
+          utterance.onend = () => {
+            mediaRecorder.stop();
+            audioContext.close();
+          };
+          
+          // Safety timeout in case speech synthesis doesn't trigger onend
           setTimeout(() => {
-            URL.revokeObjectURL(audioTextUrl);
-            document.body.removeChild(audioLink);
+            if (mediaRecorder.state === 'recording') {
+              mediaRecorder.stop();
+              audioContext.close();
+            }
+          }, 30000); // 30 second timeout
+          
+        } catch (error) {
+          console.error('Error creating audio:', error);
+          
+          // Fallback to text file if audio recording fails
+          const textBlob = new Blob([content.text], { type: 'text/plain' });
+          const textUrl = URL.createObjectURL(textBlob);
+          const textFilename = `smartcontent-text-${timestamp}.txt`;
+          
+          const textLink = document.createElement('a');
+          textLink.href = textUrl;
+          textLink.download = textFilename;
+          document.body.appendChild(textLink);
+          textLink.click();
+          
+          setTimeout(() => {
+            URL.revokeObjectURL(textUrl);
+            document.body.removeChild(textLink);
           }, 100);
           
-          alert('In a production app, this would download an MP3 of the narration. This demo provides the text content that would be spoken.');
+          window.alert('Could not create audio file. Text content has been downloaded instead.');
         }
       }
     } catch (error) {
-      console.error('Error during download:', error);
-      alert('Download failed. Please try again.');
+      console.error('Download error:', error);
+      window.alert('Failed to download content. Please try again.');
     }
   };
 

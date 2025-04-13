@@ -82,17 +82,37 @@ const ImageDisplay = () => {
     }
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!content.image) return;
     
-    if (typeof window !== 'undefined') {
+    try {
+      // Fetch the image to convert to blob
+      const response = await fetch(content.image);
+      if (!response.ok) {
+        throw new Error(`Failed to download image: ${response.status} ${response.statusText}`);
+      }
+      
+      // Get the blob data
+      const blob = await response.blob();
+      
+      // Create a blob URL
+      const blobUrl = window.URL.createObjectURL(blob);
+      
       // Create a temporary link to download the image
       const link = document.createElement('a');
-      link.href = content.image;
+      link.href = blobUrl;
       link.download = 'ai-generated-image.jpg';
       document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
+      
+      // Clean up
+      setTimeout(() => {
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(blobUrl);
+      }, 100);
+    } catch (error) {
+      console.error('Error downloading image:', error);
+      alert('Failed to download the image. Please try again.');
     }
   };
 
