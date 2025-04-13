@@ -1,570 +1,248 @@
 /* eslint-disable no-undef */
+/* eslint-disable no-unused-vars */
+
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useContentStore } from "@/lib/store";
-import { Button } from "@/components/ui/button";
-import { Download, Share2, RefreshCw, Info, Play, Pause } from "lucide-react";
-import { useEffect, useState, useRef } from "react";
-import { generateVideo, isSpeechSynthesisAvailable } from "@/lib/api";
-import Image from "next/image";
+import React, { useEffect, useRef, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { useContentStore } from '@/lib/store';
+import { generateVideo, initFFmpeg } from '@/lib/video-generator';
+import { Progress } from '@/components/ui/progress';
+import Image from 'next/image';
 
-// Check if running in browser environment
-const isBrowser = typeof window !== 'undefined';
-
-// Average speaking rate (words per minute)
-const AVERAGE_SPEAKING_RATE = 150;
-
-const VideoPlayer = () => {
+const VideoPlayer: React.FC = () => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  
   const { 
     content, 
     status, 
+    setStatus, 
     setContent, 
-    setStatus,
-    setCurrentStep
+    currentStep,
+    selectedPlatform
   } = useContentStore();
   
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [progressPercent, setProgressPercent] = useState(0);
-  const animationRef = useRef<number | null>(null);
-  const progressTimerRef = useRef<number | null>(null);
-  const startTimeRef = useRef<number | null>(null);
-  const totalDurationRef = useRef<number>(0);
-  
-  // Keep track of the speech utterance
-  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
-  
-  // Calculate estimated duration based on word count
+  // Initialize FFmpeg when component mounts
   useEffect(() => {
-    if (content.text) {
-      const wordCount = content.text.split(/\s+/).filter(word => word.length > 0).length;
-      // Calculate duration in milliseconds (words / words per minute * 60 seconds * 1000ms)
-      const estimatedDuration = (wordCount / AVERAGE_SPEAKING_RATE) * 60 * 1000;
-      totalDurationRef.current = Math.max(estimatedDuration, 3000); // Minimum 3 seconds
-    }
-  }, [content.text]);
-  
-  // Animation effects for the video player
-  useEffect(() => {
-    if (isPlaying && content.image) {
-      // Start tracking time for progress bar
-      startTimeRef.current = Date.now();
-      
-      // Update progress bar every 50ms
-      const updateProgress = () => {
-        if (startTimeRef.current && totalDurationRef.current > 0) {
-          const elapsed = Date.now() - startTimeRef.current;
-          const percent = Math.min(100, (elapsed / totalDurationRef.current) * 100);
-          setProgressPercent(percent);
-          
-          if (percent < 100) {
-            progressTimerRef.current = window.setTimeout(updateProgress, 50);
-          } else {
-            // Auto-stop at the end
-            setIsPlaying(false);
-            startTimeRef.current = null;
-          }
-        }
-      };
-      
-      // Start progress updates
-      progressTimerRef.current = window.setTimeout(updateProgress, 50);
-      
-      // Create a simple animation loop for visual effects
-      const animate = () => {
-        animationRef.current = requestAnimationFrame(animate);
-      };
-      
-      animationRef.current = requestAnimationFrame(animate);
-      
-      // Clean up animation and timers
-      return () => {
-        if (animationRef.current) {
-          cancelAnimationFrame(animationRef.current);
-        }
-        if (progressTimerRef.current) {
-          clearTimeout(progressTimerRef.current);
-        }
-      };
-    } else {
-      // Pause progress updates
-      if (progressTimerRef.current) {
-        clearTimeout(progressTimerRef.current);
+    const loadFFmpeg = async () => {
+      try {
+        await initFFmpeg();
+      } catch (error) {
+        console.error('Failed to initialize FFmpeg:', error);
       }
-    }
-  }, [isPlaying, content.image]);
-  
-  // Cleanup speech synthesis on unmount
-  useEffect(() => {
+    };
+    
+    loadFFmpeg();
+    
+    // Clean up function
     return () => {
-      if (isBrowser && window.speechSynthesis) {
-        window.speechSynthesis.cancel();
-      }
-      if (progressTimerRef.current) {
-        clearTimeout(progressTimerRef.current);
-      }
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
+      // If we have a videoUrl, revoke it to avoid memory leaks
+      if (videoUrl) {
+        URL.revokeObjectURL(videoUrl);
       }
     };
-  }, []);
+  }, [videoUrl]);
 
-  // Generate video when audio is successfully generated
+  // Load video from content store if available
   useEffect(() => {
-    const generateVideoContent = async () => {
-      if (content.text && content.image && content.audio && status.audio === 'success' && status.video === 'generating') {
-        try {
-          setErrorMessage(null);
-          // We're using the image URL as a placeholder for the video in this demo
-          // In a real implementation, you would use a video creation API
-          const videoUrl = await generateVideo(content.text, content.image, content.audio);
-          setContent('video', videoUrl);
-          setStatus('video', 'success');
-          setCurrentStep(4); // Complete
-        } catch (error) {
-          console.error('Error generating video:', error);
-          setStatus('video', 'error');
-          setErrorMessage(error instanceof Error ? error.message : 'Failed to generate video. Please try again.');
-        }
-      }
-    };
-
-    generateVideoContent();
-  }, [content.text, content.image, content.audio, status.audio, status.video, setContent, setCurrentStep, setStatus]);
-
+    if (content.video) {
+      setVideoUrl(content.video);
+    }
+  }, [content.video]);
+  
+  // Handle play/pause
   const togglePlayPause = () => {
-    if (!content.text || !isBrowser) return;
+    if (!videoRef.current) return;
     
-    const newPlayingState = !isPlaying;
-    setIsPlaying(newPlayingState);
-    
-    // Handle speech synthesis based on play/pause state
-    if (newPlayingState) {
-      // Start playing - reset progress if we finished before
-      if (progressPercent >= 100) {
-        setProgressPercent(0);
-      }
-      
-      startTimeRef.current = Date.now() - (progressPercent / 100) * totalDurationRef.current;
-      
-      if (window.speechSynthesis) {
-        try {
-          // Check if speech synthesis is available
-          if (!isSpeechSynthesisAvailable()) {
-            throw new Error('Speech synthesis is not supported in your browser.');
-          }
-          
-          // Cancel any ongoing speech
-          window.speechSynthesis.cancel();
-          
-          // Create new utterance
-          const utterance = new SpeechSynthesisUtterance(content.text);
-          utterance.rate = 1;
-          utterance.pitch = 1;
-          utterance.volume = 1;
-          
-          // When speech ends, pause the video if it was this utterance
-          utterance.onend = () => {
-            if (utteranceRef.current === utterance) {
-              setIsPlaying(false);
-              setProgressPercent(100);
-            }
-          };
-          
-          // Store the utterance reference
-          utteranceRef.current = utterance;
-          
-          // Start speaking
-          window.speechSynthesis.speak(utterance);
-        } catch (error) {
-          console.error('Error playing audio:', error);
-          setErrorMessage('Could not play audio narration. The animation will play without sound.');
-        }
-      }
+    if (videoRef.current.paused) {
+      videoRef.current.play();
+      setIsPlaying(true);
     } else {
-      // Pause the speech
-      if (window.speechSynthesis) {
-        window.speechSynthesis.pause();
-      }
+      videoRef.current.pause();
+      setIsPlaying(false);
     }
   };
-
-  const handleRegenerate = async () => {
-    if (!content.text || !content.image || !content.audio) return;
+  
+  // Generate video when requested
+  const handleGenerateVideo = async () => {
+    if (!content.image || !content.text) {
+      setError('Image and text are required to generate a video');
+      return;
+    }
     
     try {
-      setErrorMessage(null);
+      setIsLoading(true);
+      setProgress(0);
       setStatus('video', 'generating');
-      // We're using the image URL as a placeholder for the video in this demo
-      const videoUrl = await generateVideo(content.text, content.image, content.audio);
-      setContent('video', videoUrl);
+      
+      // Generate the video using our library
+      const url = await generateVideo(
+        {
+          imageUrl: content.image,
+          text: content.text,
+          platform: selectedPlatform,
+          duration: 10, // 10 seconds video by default
+          withAnimation: true,
+        },
+        (progress) => {
+          setProgress(progress);
+        }
+      );
+      
+      setVideoUrl(url);
+      setContent('video', url);
       setStatus('video', 'success');
-      setProgressPercent(0); // Reset progress
-    } catch (error) {
-      console.error('Error regenerating video:', error);
+      
+      if (videoRef.current) {
+        videoRef.current.play();
+        setIsPlaying(true);
+      }
+    } catch (err) {
+      console.error('Error generating video:', err);
+      setError(`Failed to generate video: ${err instanceof Error ? err.message : String(err)}`);
       setStatus('video', 'error');
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to regenerate video. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
+  
+  // Download the video
+  const handleDownload = () => {
+    if (!videoUrl) return;
+    
+    const a = document.createElement('a');
+    a.href = videoUrl;
+    a.download = `smartcontent-${selectedPlatform}-${new Date().getTime()}.mp4`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+  
+  // Return null if prerequisites aren't ready
+  if (!content.text || 
+      (currentStep < 4 && 
+       status.audio !== 'success' && 
+       status.video !== 'generating' && 
+       status.video !== 'success')) {
+    return null;
+  }
 
-  const handleDownload = async () => {
-    if (!content.image || !isBrowser || !content.text) return;
-    
-    try {
-      // Create a timestamp for filenames
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      
-      // Show loading indicator
-      window.alert("Creating your video file. This may take a few seconds...");
-      
-      // Create a canvas to generate our video frames
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      
-      if (!ctx) {
-        throw new Error('Could not create canvas context');
-      }
-      
-      // Set canvas dimensions
-      canvas.width = 800;
-      canvas.height = 600;
-      
-      // Load the image with proper constructor
-      const img = new window.Image();
-      img.crossOrigin = 'anonymous'; // Enable CORS for the image
-      
-      // Create a promise to wait for image loading
-      const imageLoaded = new Promise<void>((resolve, reject) => {
-        img.onload = () => resolve();
-        img.onerror = () => reject(new Error('Failed to load image'));
-        img.src = content.image || '';
-      });
-      
-      // Wait for the image to load
-      await imageLoaded;
-      
-      // Calculate aspect ratio to maintain proportions
-      const imgRatio = img.width / img.height;
-      let drawWidth = canvas.width;
-      let drawHeight = canvas.width / imgRatio;
-      
-      if (drawHeight > canvas.height) {
-        drawHeight = canvas.height;
-        drawWidth = canvas.height * imgRatio;
-      }
-      
-      // Calculate centering
-      const x = (canvas.width - drawWidth) / 2;
-      const y = (canvas.height - drawHeight) / 2;
-      
-      // Draw the image on the canvas
-      ctx.drawImage(img, x, y, drawWidth, drawHeight);
-      
-      // Add a semi-transparent overlay for better text visibility
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
-      // Configure text styling
-      ctx.fillStyle = 'white';
-      ctx.font = 'bold 24px Arial, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      
-      // Format the text for display - add line breaks
-      const maxLineWidth = canvas.width - 100; // margin
-      const formattedText = formatTextForCanvas(content.text, ctx, maxLineWidth);
-      
-      // Draw the text
-      const lineHeight = 30;
-      const startY = (canvas.height - (formattedText.length * lineHeight)) / 2;
-      
-      formattedText.forEach((line, index) => {
-        ctx.fillText(line, canvas.width / 2, startY + (index * lineHeight));
-      });
-      
-      // Add a subtle branding text
-      ctx.font = '12px Arial, sans-serif';
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-      ctx.fillText('Created with SmartContent Flow', canvas.width / 2, canvas.height - 20);
-      
-      // Create an animated GIF as a simple video alternative
-      // For a real implementation, we'd use a proper video encoding library or server-side processing
-      
-      // Convert canvas to a data URL
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
-      
-      // Create a download link for the image with text overlay
-      const link = document.createElement('a');
-      link.href = dataUrl;
-      link.download = `smartcontent-video-${timestamp}.jpg`;
-      document.body.appendChild(link);
-      link.click();
-      
-      // Clean up
-      setTimeout(() => {
-        document.body.removeChild(link);
-      }, 100);
-      
-      // Offer additional download options
-      if (window.confirm('Video image downloaded! Would you like to download the text content separately as well?')) {
-        // Download text narration
-        const textBlob = new Blob([content.text], { type: 'text/plain' });
-        const textUrl = URL.createObjectURL(textBlob);
-        
-        const textLink = document.createElement('a');
-        textLink.href = textUrl;
-        textLink.download = `smartcontent-narration-${timestamp}.txt`;
-        document.body.appendChild(textLink);
-        textLink.click();
-        
-        // Clean up
-        setTimeout(() => {
-          URL.revokeObjectURL(textUrl);
-          document.body.removeChild(textLink);
-        }, 100);
-      }
-      
-      window.alert('Download complete! This version includes a single frame video file. In a full production app, we would generate a complete MP4 video with text animations and audio narration.');
-      
-    } catch (error) {
-      console.error('Download error:', error);
-      window.alert('Failed to create video. Please try again.');
-    }
-  };
-  
-  // Helper function to format text with line breaks for canvas
-  const formatTextForCanvas = (text: string, ctx: CanvasRenderingContext2D, maxWidth: number): string[] => {
-    const words = text.split(' ');
-    const lines: string[] = [];
-    let currentLine = '';
-    
-    words.forEach(word => {
-      const testLine = currentLine ? `${currentLine} ${word}` : word;
-      const metrics = ctx.measureText(testLine);
-      
-      if (metrics.width > maxWidth && currentLine) {
-        lines.push(currentLine);
-        currentLine = word;
-      } else {
-        currentLine = testLine;
-      }
-    });
-    
-    if (currentLine) {
-      lines.push(currentLine);
-    }
-    
-    // Limit to a reasonable number of lines
-    if (lines.length > 12) {
-      const shortened = lines.slice(0, 11);
-      shortened.push('...');
-      return shortened;
-    }
-    
-    return lines;
-  };
-
-  const handleShare = () => {
-    if (!isBrowser || !content.image || !content.text) return;
-    
-    try {
-      // Get the platform from the content store
-      const { selectedPlatform } = useContentStore.getState();
-      
-      // Create a formatted shareable text with the image link
-      const shareText = `🔥 AI-Generated Content for ${selectedPlatform || 'social media'}\n\n${content.text}\n\nImage: ${content.image}`;
-      
-      // Try to use the native share API, but fall back to clipboard copy
-      if (navigator.share) {
-        navigator.share({
-          title: `AI-Generated Content for ${selectedPlatform || 'social media'}`,
-          text: shareText
-        }).catch((error) => {
-          console.error('Error sharing:', error);
-          // If share fails, fall back to clipboard
-          copyToClipboard(shareText);
-        });
-      } else {
-        // Copy to clipboard as fallback
-        copyToClipboard(shareText);
-      }
-    } catch (error) {
-      console.error('Share error:', error);
-      alert('Failed to share content. Please try again.');
-    }
-  };
-  
-  // Helper function to copy text to clipboard
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text).then(() => {
-      alert('Content copied to clipboard! You can now paste it to share with others.');
-    }).catch(() => {
-      // Final fallback - show the text to manually copy
-      alert('Could not copy automatically. Please copy this content manually:\n\n' + text);
-    });
-  };
-
-  // Return null if not at the video generation step or if prerequisites aren't ready
-  if (!content.text || !content.image || !content.audio || status.audio !== 'success') return null;
-
-  // Split the text into words to show them animated
-  const words = content.text?.split(' ') || [];
-  // Calculate how many words to show based on progress
-  const wordsToShow = Math.min(words.length, Math.floor((progressPercent / 100) * words.length) + 1);
-  const animatedText = words.slice(0, wordsToShow).join(' ');
-  
-  // Calculate animation effects based on the animation frame
-  const animationProgress = progressPercent / 100;
-  const scale = 1 + Math.sin(animationProgress * Math.PI * 2) * 0.02;
-  const translateX = Math.sin(animationProgress * Math.PI * 3) * 4;
-  const translateY = Math.cos(animationProgress * Math.PI * 2) * 4;
-  const brightness = 100 + Math.sin(animationProgress * Math.PI * 4) * 8;
-  
-  // Format time for display (MM:SS)
-  const formatTime = (milliseconds: number) => {
-    const totalSeconds = Math.floor(milliseconds / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  };
-  
-  // Calculate current time and total time
-  const currentTimeMs = (progressPercent / 100) * totalDurationRef.current;
-  const totalTimeMs = totalDurationRef.current;
-  
   return (
-    <Card className="border border-gray-200 shadow-sm">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg flex items-center justify-between">
-          <span className="flex items-center">
-            Social Media Video
-            <Button variant="ghost" size="sm" className="ml-1 p-0 h-6 w-6" title="This is a demo with animated effects and audio narration">
-              <Info className="h-4 w-4 text-gray-400" />
-            </Button>
-          </span>
-          <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleRegenerate}
-              disabled={status.video === 'generating'}
-              className="h-8 px-2 text-xs"
+    <div className="w-full flex flex-col space-y-4">
+      {/* Video container with responsive sizing */}
+      <div 
+        className="relative bg-gray-900 rounded-md overflow-hidden" 
+        style={{ width: '100%', maxWidth: 640, height: 'auto', aspectRatio: '16/9' }}
+      >
+        {videoUrl ? (
+          <>
+            <video
+              ref={videoRef}
+              src={videoUrl}
+              className="w-full h-full object-contain"
+              controls={false}
+              onEnded={() => setIsPlaying(false)}
+            />
+            
+            {/* Custom play/pause button overlay */}
+            <div 
+              className="absolute inset-0 flex items-center justify-center cursor-pointer"
+              onClick={togglePlayPause}
             >
-              <RefreshCw className="h-4 w-4 mr-1" /> Regenerate
-            </Button>
-            {content.video && status.video === 'success' && (
-              <>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleDownload}
-                  className="h-8 px-2 text-xs"
-                >
-                  <Download className="h-4 w-4 mr-1" /> Download
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleShare}
-                  className="h-8 px-2 text-xs"
-                >
-                  <Share2 className="h-4 w-4 mr-1" /> Share
-                </Button>
-              </>
+              {!isPlaying && (
+                <div className="bg-black bg-opacity-50 rounded-full p-3">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="white"
+                    className="w-8 h-8"
+                  >
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                </div>
+              )}
+            </div>
+          </>
+        ) : (
+          // Display image or placeholder if video not generated yet
+          <div className="w-full h-full flex items-center justify-center bg-gray-800">
+            {content.image ? (
+              <div className="relative w-full h-full">
+                {/* Using Next.js Image for optimization */}
+                <Image 
+                  src={content.image}
+                  alt="Content"
+                  fill
+                  sizes="(max-width: 640px) 100vw, 640px"
+                  className="object-contain"
+                />
+              </div>
+            ) : (
+              <div className="text-white text-center p-4">
+                {isLoading ? 'Generating video...' : 'Generate a video from your content'}
+              </div>
             )}
           </div>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        {status.video === 'generating' ? (
-          <div className="w-full p-8 bg-gray-100 rounded-md flex items-center justify-center">
-            <div className="text-[#6B7280]">Creating social media video...</div>
+        )}
+        
+        {/* Loading overlay */}
+        {isLoading && (
+          <div className="absolute inset-0 bg-black bg-opacity-70 flex flex-col items-center justify-center">
+            <div className="text-white mb-4">Generating video...</div>
+            <Progress value={progress * 100} className="w-3/4 mb-2" />
+            <div className="text-white text-sm">{Math.round(progress * 100)}%</div>
           </div>
-        ) : status.video === 'error' ? (
-          <div className="w-full p-8 bg-gray-100 rounded-md flex items-center justify-center">
-            <div className="text-[#EF4444]">
-              {errorMessage || 'Error generating video. Please try again.'}
-            </div>
-          </div>
-        ) : content.video ? (
-          <div className="relative w-full bg-black rounded-md overflow-hidden aspect-video">
-            {/* Animated image with subtle movements */}
-            <div 
-              className="w-full h-full transition-transform duration-500 ease-in-out"
-              style={{
-                transform: isPlaying ? `scale(${scale}) translate(${translateX}px, ${translateY}px)` : 'none',
-                filter: isPlaying ? `brightness(${brightness}%)` : 'none'
-              }}
+        )}
+      </div>
+      
+      {/* Error message */}
+      {error && (
+        <div className="text-red-500 text-sm">{error}</div>
+      )}
+      
+      {/* Control buttons */}
+      <div className="flex space-x-2">
+        {!videoUrl && (
+          <Button 
+            onClick={handleGenerateVideo} 
+            disabled={isLoading || !content.image || !content.text}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white"
+          >
+            {isLoading ? 'Generating...' : 'Generate Video'}
+          </Button>
+        )}
+        
+        {videoUrl && (
+          <>
+            <Button 
+              onClick={togglePlayPause}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white"
             >
-              <Image 
-                src={content.image} 
-                alt="AI-generated content"
-                className="w-full h-full object-cover"
-                width={800}
-                height={600}
-              />
-            </div>
+              {isPlaying ? 'Pause' : 'Play'}
+            </Button>
             
-            {/* Animated text overlay */}
-            <div className="absolute inset-0 flex flex-col justify-end p-4 bg-gradient-to-t from-black to-transparent">
-              <div className="text-white text-lg font-medium mb-2 line-clamp-2">
-                {isPlaying ? animatedText : content.text}
-              </div>
-              
-              {/* Play/pause button overlay */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Button
-                  onClick={togglePlayPause}
-                  variant="outline"
-                  className={`rounded-full w-16 h-16 ${isPlaying ? 'bg-black/30' : 'bg-white/30'} backdrop-blur-sm hover:bg-white/50 ${isPlaying ? 'opacity-0 hover:opacity-100' : 'opacity-100'} transition-opacity duration-300`}
-                >
-                  {isPlaying ? (
-                    <Pause className="h-8 w-8 text-white" />
-                  ) : (
-                    <Play className="h-8 w-8 text-white" />
-                  )}
-                </Button>
-              </div>
-              
-              {/* Control bar at bottom */}
-              <div className="flex items-center">
-                <Button
-                  onClick={togglePlayPause}
-                  variant="ghost"
-                  size="sm"
-                  className="text-white hover:bg-white/20"
-                >
-                  {isPlaying ? (
-                    <><Pause className="h-4 w-4 mr-1" /> Pause</>
-                  ) : (
-                    <><Play className="h-4 w-4 mr-1" /> Play</>
-                  )}
-                </Button>
-                
-                {/* Time display */}
-                <span className="text-white text-xs mr-2">
-                  {formatTime(currentTimeMs)}
-                </span>
-                
-                {/* Progress bar */}
-                <div className="flex-grow mx-2 h-1 bg-white/30 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-white"
-                    style={{ width: `${progressPercent}%` }}
-                  />
-                </div>
-                
-                {/* Total duration */}
-                <span className="text-white text-xs ml-2">
-                  {formatTime(totalTimeMs)}
-                </span>
-              </div>
-            </div>
-          </div>
-        ) : null}
-      </CardContent>
-    </Card>
+            <Button 
+              onClick={handleDownload}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              Download
+            </Button>
+            
+            <Button 
+              onClick={handleGenerateVideo}
+              className="bg-gray-600 hover:bg-gray-700 text-white"
+            >
+              Regenerate
+            </Button>
+          </>
+        )}
+      </div>
+    </div>
   );
 };
 
