@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -52,7 +53,7 @@ const ImageDisplay = () => {
     };
 
     generateImageContent();
-  }, [content.text, status.text, status.image]);
+  }, [content.text, status.text, status.image, setContent, setStatus, setCurrentStep]);
 
   const handleRegenerate = async () => {
     if (!content.text) return;

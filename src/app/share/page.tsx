@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
@@ -43,6 +44,7 @@ const ClientSideShareContent = dynamic(() => Promise.resolve(({
   platform: string, 
   decodedText: string 
 }) => {
+  /* eslint-disable no-undef */
   const [copied, setCopied] = useState(false);
   const config = platformConfig[platform as keyof typeof platformConfig] || platformConfig.general;
   
@@ -64,6 +66,7 @@ const ClientSideShareContent = dynamic(() => Promise.resolve(({
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+  /* eslint-enable no-undef */
   
   return (
     <div className="container max-w-2xl mx-auto py-12 px-4">
@@ -123,8 +126,8 @@ const ClientSideShareContent = dynamic(() => Promise.resolve(({
   );
 }), { ssr: false }); // Disable SSR for this component
 
-// Main share page component
-export default function SharePage() {
+// Separate client component to handle search params
+const ShareContent = () => {
   const searchParams = useSearchParams();
   
   // Get parameters from URL
@@ -158,4 +161,44 @@ export default function SharePage() {
   
   // Show client-side content with browser APIs
   return <ClientSideShareContent imageUrl={imageUrl} platform={platform} decodedText={decodedText} />;
+}
+
+export default function SharePage() {
+  return (
+    <Suspense fallback={
+      <div className="container max-w-2xl mx-auto py-12 px-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-xl">Loading Shared Content...</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-60 flex items-center justify-center">
+              <div className="animate-pulse flex space-x-4">
+                <div className="rounded-full bg-slate-200 h-10 w-10"></div>
+                <div className="flex-1 space-y-6 py-1">
+                  <div className="h-2 bg-slate-200 rounded"></div>
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="h-2 bg-slate-200 rounded col-span-2"></div>
+                      <div className="h-2 bg-slate-200 rounded col-span-1"></div>
+                    </div>
+                    <div className="h-2 bg-slate-200 rounded"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+          <CardFooter>
+            <Link href="/">
+              <Button>
+                <ArrowLeft className="h-4 w-4 mr-2" /> Go to Content Creator
+              </Button>
+            </Link>
+          </CardFooter>
+        </Card>
+      </div>
+    }>
+      <ShareContent />
+    </Suspense>
+  );
 }
