@@ -130,80 +130,17 @@ const AudioPlayer = () => {
     if (!speechText || !isBrowser) return;
     
     try {
-      // For a production version, we should use a server API to generate proper MP3 files
-      // Since we're using browser speech synthesis, we'll create a more sophisticated approach
+      // Create a timestamp for the filename
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       
-      // Create a new SpeechSynthesisUtterance
-      const utterance = new SpeechSynthesisUtterance(speechText);
-      
-      // Set up an audio recorder to capture the synthesized speech
-      // This is a simple implementation, but in production you'd use a more robust solution
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      const mediaStreamDest = audioContext.createMediaStreamDestination();
-      const mediaRecorder = new MediaRecorder(mediaStreamDest.stream);
-      
-      // Array to store the audio chunks
-      const audioChunks: BlobPart[] = [];
-      
-      // Listen for data available events
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunks.push(event.data);
-        }
-      };
-      
-      // When recording stops, create and download the audio file
-      mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunks, { type: 'audio/mpeg' });
-        const audioUrl = URL.createObjectURL(audioBlob);
-        
-        // Create a download link
-        const link = document.createElement('a');
-        link.href = audioUrl;
-        link.download = 'ai-generated-speech.mp3';
-        document.body.appendChild(link);
-        link.click();
-        
-        // Clean up
-        setTimeout(() => {
-          document.body.removeChild(link);
-          URL.revokeObjectURL(audioUrl);
-        }, 100);
-      };
-      
-      // Start recording
-      mediaRecorder.start();
-      
-      // Play the speech
-      speechSynthesis.speak(utterance);
-      
-      // When speech ends, stop recording
-      utterance.onend = () => {
-        mediaRecorder.stop();
-        audioContext.close();
-      };
-      
-      // If something goes wrong, provide a fallback
-      setTimeout(() => {
-        if (mediaRecorder.state === 'recording') {
-          // If recording is taking too long, stop it
-          mediaRecorder.stop();
-          audioContext.close();
-        }
-      }, 30000); // 30 seconds timeout
-      
-    } catch (error) {
-      console.error('Error during audio download:', error);
-      
-      // Fallback for browsers that don't support MediaRecorder
-      // Create a blob with the text content instead
-      const blob = new Blob([speechText], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
+      // Simple, reliable approach - download the text content
+      const textBlob = new Blob([speechText], { type: 'text/plain' });
+      const url = URL.createObjectURL(textBlob);
       
       // Create a download link for the text
       const link = document.createElement('a');
       link.href = url;
-      link.download = 'ai-generated-speech.txt';
+      link.download = `ai-narration-${timestamp}.txt`;
       document.body.appendChild(link);
       link.click();
       
@@ -213,7 +150,10 @@ const AudioPlayer = () => {
         document.body.removeChild(link);
       }, 100);
       
-      alert('Your browser doesn\'t support direct audio recording. A text file with the speech content has been downloaded instead.');
+      alert('Audio narration text has been downloaded. To create an MP3, you can use an online text-to-speech converter with this text file.');
+    } catch (error) {
+      console.error('Error during download:', error);
+      alert('Download failed. Please try again.');
     }
   };
 

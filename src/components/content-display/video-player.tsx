@@ -212,109 +212,39 @@ const VideoPlayer = () => {
     if (!content.image || !isBrowser || !content.text) return;
     
     try {
-      // For a better implementation, we'd create a server endpoint to convert audio/image to video
-      // For this client-side solution, we'll use HTML Canvas to create a video-like MP4
-      
-      // 1. First, download the image as a proper file
-      const getImageBlob = async (url: string) => {
-        try {
-          const response = await fetch(url);
-          if (!response.ok) throw new Error(`Failed to fetch image: ${response.status}`);
-          const blob = await response.blob();
-          return blob;
-        } catch (error) {
-          console.error('Error fetching image:', error);
-          throw new Error('Failed to download image');
-        }
-      };
-      
-      // 2. Get the image data
-      const imageBlob = await getImageBlob(content.image);
-      
-      // 3. Create a proper filename with timestamp
+      // Create a timestamp for filenames
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const imageFilename = `smartcontent-image-${timestamp}.jpg`;
       
-      // 4. Create a download link for the image with proper content disposition
-      const imageUrl = URL.createObjectURL(imageBlob);
-      const imageLink = document.createElement('a');
-      imageLink.href = imageUrl;
-      imageLink.download = imageFilename;
-      document.body.appendChild(imageLink);
-      imageLink.click();
-      
-      // 5. Clean up image resources
-      setTimeout(() => {
-        URL.revokeObjectURL(imageUrl);
-        document.body.removeChild(imageLink);
-      }, 100);
-      
-      // 6. Ask if user also wants the audio
-      if (window.confirm('Would you like to download the audio narration as well?')) {
-        try {
-          // Create a MediaRecorder to capture the synthesized speech
-          const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-          const mediaStreamDest = audioContext.createMediaStreamDestination();
-          const mediaRecorder = new MediaRecorder(mediaStreamDest.stream);
-          
-          // Store audio chunks
-          const audioChunks: BlobPart[] = [];
-          
-          // Listen for data available events
-          mediaRecorder.ondataavailable = (event) => {
-            if (event.data.size > 0) {
-              audioChunks.push(event.data);
-            }
-          };
-          
-          // When recording stops, create and download audio file
-          mediaRecorder.onstop = () => {
-            const audioBlob = new Blob(audioChunks, { type: 'audio/mpeg' });
-            const audioUrl = URL.createObjectURL(audioBlob);
-            const audioFilename = `smartcontent-audio-${timestamp}.mp3`;
-            
-            // Create download link for audio
-            const audioLink = document.createElement('a');
-            audioLink.href = audioUrl;
-            audioLink.download = audioFilename;
-            document.body.appendChild(audioLink);
-            audioLink.click();
-            
-            // Clean up audio resources
-            setTimeout(() => {
-              URL.revokeObjectURL(audioUrl);
-              document.body.removeChild(audioLink);
-            }, 100);
-          };
-          
-          // Start recording
-          mediaRecorder.start();
-          
-          // Create and play the utterance
-          const utterance = new SpeechSynthesisUtterance(content.text);
-          window.speechSynthesis.speak(utterance);
-          
-          // When speech ends, stop recording
-          utterance.onend = () => {
-            mediaRecorder.stop();
-            audioContext.close();
-          };
-          
-          // Safety timeout in case speech synthesis doesn't trigger onend
-          setTimeout(() => {
-            if (mediaRecorder.state === 'recording') {
-              mediaRecorder.stop();
-              audioContext.close();
-            }
-          }, 30000); // 30 second timeout
-          
-        } catch (error) {
-          console.error('Error creating audio:', error);
-          
-          // Fallback to text file if audio recording fails
+      // Download image first - this is the most reliable approach
+      try {
+        // Fetch the image directly
+        const response = await fetch(content.image);
+        if (!response.ok) throw new Error(`Failed to fetch image: ${response.status}`);
+        
+        // Get image as blob
+        const imageBlob = await response.blob();
+        
+        // Create object URL and download link
+        const imageUrl = URL.createObjectURL(imageBlob);
+        const imageLink = document.createElement('a');
+        imageLink.href = imageUrl;
+        imageLink.download = imageFilename;
+        document.body.appendChild(imageLink);
+        imageLink.click();
+        
+        // Clean up
+        setTimeout(() => {
+          URL.revokeObjectURL(imageUrl);
+          document.body.removeChild(imageLink);
+        }, 100);
+        
+        // Ask if user wants to download the text narration as well
+        if (window.confirm('Image downloaded. Would you like to download the text narration as well?')) {
+          // Download text narration
+          const textFilename = `smartcontent-narration-${timestamp}.txt`;
           const textBlob = new Blob([content.text], { type: 'text/plain' });
           const textUrl = URL.createObjectURL(textBlob);
-          const textFilename = `smartcontent-text-${timestamp}.txt`;
           
           const textLink = document.createElement('a');
           textLink.href = textUrl;
@@ -322,13 +252,18 @@ const VideoPlayer = () => {
           document.body.appendChild(textLink);
           textLink.click();
           
+          // Clean up
           setTimeout(() => {
             URL.revokeObjectURL(textUrl);
             document.body.removeChild(textLink);
           }, 100);
           
-          window.alert('Could not create audio file. Text content has been downloaded instead.');
+          window.alert('Content downloaded successfully! To create a video, you can use these files with any video editing tool.');
         }
+        
+      } catch (error) {
+        console.error('Error downloading image:', error);
+        window.alert('Failed to download image. Please try again.');
       }
     } catch (error) {
       console.error('Download error:', error);
