@@ -1,6 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import "./globals.css";
+import "@/app/globals.css";
 import { IBM_Plex_Mono, Inter } from "next/font/google";
+import { Providers } from "@/components/providers";
+import { MainNav } from "@/components/main-nav";
+import React from "react";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -16,13 +19,8 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: {
-    default: "Outlaw AI Consultancy",
-    template: "%s | Outlaw AI Consultancy",
-  },
-  description: "Challenging the AI status quo with radical honesty and evidence-based disruption",
-  authors: [{ name: "Outlaw AI Consultancy" }],
-  keywords: ["AI consultancy", "digital transformation", "disruptive innovation"],
+  title: "AI Media Maker",
+  description: "Transform your ideas into watchable and shareable AI-generated content in one click.",
 };
 
 export const viewport: Viewport = {
@@ -42,7 +40,10 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} ${ibmPlexMono.variable} font-sans antialiased`}>
-        {children}
+        <Providers>
+          <MainNav />
+          {children}
+        </Providers>
       </body>
     </html>
   );

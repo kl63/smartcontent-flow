@@ -1,80 +1,119 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+'use client';
+
+import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import ContentForm from '@/components/content-form';
+import WorkflowSteps from '@/components/workflow-steps';
+import TextDisplay from '@/components/content-display/text-display';
+import ImageDisplay from '@/components/content-display/image-display';
+import AudioPlayer from '@/components/content-display/audio-player';
+import VideoPlayer from '@/components/content-display/video-player';
+import ApiKeySetup from '@/components/api-key-setup';
+import { useContentStore } from '@/lib/store';
 
 export default function Home() {
+  const { 
+    currentStep,
+    content,
+  } = useContentStore();
+  
+  const [showSettings, setShowSettings] = useState(false);
+  
   return (
-    <div className="min-h-screen bg-background">
-      <main className="container mx-auto space-y-16 pt-20 px-4">
-        {/* Hero Section - Using brand colors for psychological impact */}
-        <div className="text-center space-y-6 max-w-[800px] mx-auto">
-          <h1 className="font-mono tracking-tighter text-gradient-brand">
-            Challenge The AI Status Quo
-          </h1>
-          <p className="text-lg text-medium-contrast max-w-2xl mx-auto">
-            We liberate Fortune 100 companies through radical honesty and evidence-based AI disruption. No corporate speak. No incremental changes. Pure revolutionary transformation.
-          </p>
-          <div className="flex gap-4 justify-center pt-4">
-            <Button size="lg" className="text-base bg-gradient-brand hover:opacity-90">
-              Start Your Revolution
-            </Button>
-            <Button variant="outline" size="lg" className="text-base border-primary-600 text-primary-700 hover:bg-primary-50">
-              View Case Studies
-            </Button>
+    <main className="flex flex-col min-h-screen">
+      <div className="flex flex-col items-center justify-center py-8 md:py-12">
+        <div className="container max-w-5xl px-4 md:px-6">
+          <div className="flex flex-col items-center text-center space-y-4 mb-8">
+            <h1 className="text-3xl md:text-5xl font-bold tracking-tighter">
+              AI Media Maker
+            </h1>
+            <p className="max-w-[700px] text-gray-500 md:text-lg/relaxed">
+              Transform your ideas into professional social media content for LinkedIn, TikTok, and Instagram in seconds.
+            </p>
+            
+            <button 
+              onClick={() => setShowSettings(!showSettings)}
+              className="text-xs text-blue-600 hover:text-blue-800 transition-colors"
+            >
+              {showSettings ? 'Hide API Settings' : 'Configure API Keys'}
+            </button>
+            
+            {showSettings && <ApiKeySetup />}
+          </div>
+          
+          <div className="grid gap-8">
+            {/* Workflow Visualization */}
+            <WorkflowSteps />
+            
+            {/* Content Generation Form */}
+            <div className="grid gap-6">
+              <ContentForm />
+              
+              {/* Content Display Section - Only show if we have content */}
+              {(currentStep > 0 || content.text) && (
+                <div className="grid gap-6">
+                  <div className="grid gap-4">
+                    <h2 className="text-2xl font-bold tracking-tighter">
+                      Generated Content
+                    </h2>
+                    <div className="grid gap-6">
+                      {/* Text content */}
+                      <TextDisplay />
+                      
+                      {/* Image content */}
+                      <ImageDisplay />
+                      
+                      {/* Audio player */}
+                      <AudioPlayer />
+                      
+                      {/* Video player */}
+                      <VideoPlayer />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            {/* Instructions */}
+            <Card className="mt-8">
+              <CardHeader>
+                <CardTitle>How It Works</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="flex flex-col items-center text-center space-y-2">
+                    <div className="bg-blue-100 p-3 rounded-full">
+                      <span className="text-blue-800 text-xl font-bold">1</span>
+                    </div>
+                    <h3 className="text-lg font-medium">Enter Your Idea</h3>
+                    <p className="text-sm text-gray-500">
+                      Type in your content idea and select your target platform
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-center text-center space-y-2">
+                    <div className="bg-blue-100 p-3 rounded-full">
+                      <span className="text-blue-800 text-xl font-bold">2</span>
+                    </div>
+                    <h3 className="text-lg font-medium">AI Does the Work</h3>
+                    <p className="text-sm text-gray-500">
+                      Our AI generates platform-optimized text, image, and audio content
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-center text-center space-y-2">
+                    <div className="bg-blue-100 p-3 rounded-full">
+                      <span className="text-blue-800 text-xl font-bold">3</span>
+                    </div>
+                    <h3 className="text-lg font-medium">Share Your Content</h3>
+                    <p className="text-sm text-gray-500">
+                      Download or share your professional content directly to social media
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
-
-        {/* Core Principles Section - Using color psychology for impact */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 py-8">
-          <Card className="border-l-4 border-l-primary-500">
-            <CardHeader>
-              <CardTitle className="font-mono tracking-tight text-primary-700">Radical Honesty</CardTitle>
-              <CardDescription>Unfiltered insights that drive real change</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-medium-contrast">
-                We deliver uncomfortable truths that conventional consultants won't touch. Because real transformation starts with radical honesty.
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-l-4 border-l-secondary-500">
-            <CardHeader>
-              <CardTitle className="font-mono tracking-tight text-secondary-700">Disruptive Innovation</CardTitle>
-              <CardDescription>Beyond optimization to revolution</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-medium-contrast">
-                We don't just improve your AI systems—we completely reimagine them. Creating market shifts, not incremental gains.
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-l-4 border-l-accent-500">
-            <CardHeader>
-              <CardTitle className="font-mono tracking-tight text-accent-700">Evidence-Based Rebellion</CardTitle>
-              <CardDescription>Data-driven disruption that works</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-medium-contrast">
-                Our revolutionary approaches are backed by solid data and psychological research. We're rebels with results.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Call to Revolution Section - Using gradient for visual impact */}
-        <div className="text-center space-y-8 py-16">
-          <h2 className="font-mono tracking-tighter text-gradient-brand max-w-3xl mx-auto">
-            Ready to Break Free from AI Conformity?
-          </h2>
-          <p className="text-lg text-medium-contrast max-w-2xl mx-auto">
-            Join the ranks of Fortune 100 companies who've dared to challenge the established order and revolutionize their industries.
-          </p>
-          <Button size="lg" className="text-base bg-gradient-innovation hover:opacity-90">
-            Schedule Your Strategy Session
-          </Button>
-        </div>
-      </main>
-    </div>
+      </div>
+    </main>
   );
 }
