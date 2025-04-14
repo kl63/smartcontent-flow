@@ -8,4 +8,6 @@ export interface ContentDisplayProps {
   platform?: string;
 }
 
-export type Platform = 'linkedin' | 'tiktok' | 'instagram' | 'twitter' | 'facebook';
+// Simplified to only include LinkedIn
+export type Platform = 'linkedin'; // Other platforms commented out for future use
+// export type Platform = 'linkedin' | 'tiktok' | 'instagram' | 'twitter' | 'facebook';

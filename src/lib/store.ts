@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
-export type Platform = 'linkedin' | 'tiktok' | 'instagram' | 'twitter' | 'facebook';
+// Only LinkedIn is supported currently, other platforms commented out for future use
+export type Platform = 'linkedin'; // | 'tiktok' | 'instagram' | 'twitter' | 'facebook';
 
 export type ContentState = {
   text: string | null;

@@ -1,16 +1,15 @@
-# SmartContent Flow - AI Social Media Content Generator
+# SmartContent Flow - LinkedIn AI Content Generator
 
-SmartContent Flow is an all-in-one AI-powered content creation platform that helps you generate engaging social media content across multiple platforms with just a few clicks. Create professional text, images, audio narration, and video-like content for LinkedIn, TikTok, Instagram, and more.
+SmartContent Flow is an AI-powered content creation platform that helps you generate professional LinkedIn posts with just a few clicks. Create engaging text content, matching images, and post directly to LinkedIn using free integrations.
 
 ## Features
 
-- **Multi-Platform Support**: Create tailored content for LinkedIn, TikTok, and Instagram
-- **AI-Powered Text Generation**: Craft professional, platform-specific text content
+- **LinkedIn-Optimized Content**: Create tailored professional content specifically for LinkedIn
+- **AI-Powered Text Generation**: Craft professional, business-focused text content
 - **Automatic Image Selection**: Find the perfect image to match your content
-- **Audio Narration**: Generate spoken versions of your content
-- **Video-Like Preview**: Combine text, image, and audio into shareable content
-- **Easy Sharing**: Share your content directly or download for later use
-- **Editable Content**: Customize AI-generated content to match your voice
+- **Free LinkedIn Integration**: Post directly to LinkedIn using Make.com's free webhook integration
+- **Audio & Video Preview**: Generate spoken versions and video-like content for sharing
+- **Easy Publishing Workflow**: From idea to posted content in minutes
 
 ## Tech Stack
 
@@ -19,6 +18,7 @@ SmartContent Flow is an all-in-one AI-powered content creation platform that hel
 - **[Tailwind CSS](https://tailwindcss.com/)** - Utility-first styling
 - **[Zustand](https://github.com/pmndrs/zustand)** - State management
 - **[shadcn/ui](https://ui.shadcn.com/)** - Component library
+- **[Make.com](https://make.com/)** - Free webhook integration for LinkedIn posting
 - **Web Speech API** - Browser-based text-to-speech
 - **OpenAI API** - AI-powered text generation
 
@@ -30,6 +30,7 @@ Make sure you have the following installed:
 - Node.js (v18 or newer)
 - npm or yarn package manager
 - OpenAI API key (for text generation)
+- Make.com account (for LinkedIn posting)
 
 ### Installation
 
@@ -47,7 +48,6 @@ Make sure you have the following installed:
 3. Create a `.env.local` file in the root directory and add your API keys:
    ```
    NEXT_PUBLIC_OPENAI_API_KEY=your_openai_api_key
-   NEXT_PUBLIC_UNSPLASH_ACCESS_KEY=your_unsplash_key
    ```
 
 4. Start the development server:
@@ -57,16 +57,26 @@ Make sure you have the following installed:
 
 5. Open [http://localhost:3000](http://localhost:3000) in your browser to see the application.
 
+## LinkedIn Integration Setup
+
+1. Create a free [Make.com](https://make.com) account
+2. Create a new scenario with these modules:
+   - Webhook trigger
+   - Download an image from URL
+   - LinkedIn: Create a User Image Post
+3. Copy your webhook URL from Make.com
+4. Configure it in the Settings page of SmartContent Flow
+5. You can now post directly from the application to LinkedIn
+
 ## Application Workflow
 
-1. **Input**: Provide a topic or idea for your content
-2. **Platform Selection**: Choose your target platform (LinkedIn, TikTok, Instagram)
-3. **Text Generation**: AI creates platform-optimized content
-4. **Content Editing**: Review and customize the generated text
-5. **Image Selection**: System finds a relevant image
-6. **Audio Generation**: Text is converted to speech
-7. **Preview**: See and hear your content with synchronized playback
-8. **Download/Share**: Get your content ready for posting
+1. **Input**: Provide a topic or idea for your LinkedIn content
+2. **Text Generation**: AI creates professionally optimized LinkedIn content
+3. **Content Editing**: Review and customize the generated text
+4. **Image Selection**: System finds a relevant image
+5. **Preview**: See your content in a LinkedIn-like format
+6. **Publish**: Post directly to LinkedIn with one click
+7. **Media**: Optionally create audio and video versions for enhanced engagement
 
 ## Project Structure
 
@@ -74,23 +84,14 @@ Make sure you have the following installed:
 ├── public/                 # Static assets
 ├── src/
 │   ├── app/                # Next.js App Router pages
-│   ├── components/
-│   │   ├── content-display/# Content display components
-│   │   ├── content-input/  # User input components
-│   │   └── ui/             # Reusable UI components
-│   ├── lib/                # Utility functions and API calls
-│   └── store/              # Zustand state management
+│   ├── components/         # React components 
+│   ├── lib/                # Utility functions, API calls, and services
+│   │   ├── api.ts          # OpenAI API integration
+│   │   ├── make-service.ts # Make.com integration for LinkedIn posting
+│   │   └── store.ts        # Zustand state management
+│   └── types/              # TypeScript type definitions
 └── tailwind.config.js      # Tailwind CSS configuration
 ```
-
-## Future Enhancements
-
-- Server-side MP3 generation
-- More robust video creation
-- Authentication and saved content libraries
-- Enhanced AI image generation
-- Multiple language support
-- Custom voice options
 
 ## Deployment
 

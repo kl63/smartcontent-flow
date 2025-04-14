@@ -103,7 +103,8 @@ const ContentForm = () => {
         />
       </div>
       
-      {/* Platform selection */}
+      {/* Platform selection - temporarily removed to focus on LinkedIn only */}
+      {/* 
       <div className="space-y-2">
         <label className="block text-sm font-medium text-gray-700">Select platform</label>
         <div className="grid grid-cols-3 gap-3">
@@ -126,6 +127,14 @@ const ContentForm = () => {
             </button>
           ))}
         </div>
+      </div>
+      */}
+      
+      {/* LinkedIn badge - shows that we're focused on LinkedIn */}
+      <div className="flex items-center space-x-2 bg-blue-50 p-3 rounded-md border border-blue-100">
+        <span className="text-blue-800 font-medium">Platform:</span>
+        <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-md font-medium">LinkedIn</span>
+        <span className="text-sm text-blue-600 ml-auto">Professional network optimized content</span>
       </div>
       
       {/* Submit button */}

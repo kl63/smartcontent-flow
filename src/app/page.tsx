@@ -6,8 +6,6 @@ import ContentForm from '@/components/content-form';
 import WorkflowSteps from '@/components/workflow-steps';
 import TextDisplay from '@/components/content-display/text-display';
 import ImageDisplay from '@/components/content-display/image-display';
-import AudioPlayer from '@/components/content-display/audio-player';
-import VideoPlayer from '@/components/content-display/video-player';
 import SocialPostPreview from '@/components/content-display/social-post-preview';
 import ApiKeySetup from '@/components/api-key-setup';
 import { useContentStore } from '@/lib/store';
@@ -29,7 +27,7 @@ export default function Home() {
               SmartContent Flow
             </h1>
             <p className="max-w-[700px] text-gray-500 md:text-lg/relaxed">
-              Transform your ideas into professional social media content for LinkedIn, TikTok, Instagram and more in seconds.
+              Transform your ideas into professional LinkedIn content in seconds using AI and post directly with free integrations.
             </p>
             
             <button 
@@ -67,11 +65,11 @@ export default function Home() {
                       {/* Social Media Post Preview */}
                       <SocialPostPreview />
                       
-                      {/* Audio player */}
-                      <AudioPlayer />
+                      {/* Audio player - temporarily commented out */}
+                      {/* <AudioPlayer /> */}
                       
-                      {/* Video player */}
-                      <VideoPlayer />
+                      {/* Video player - temporarily commented out */}
+                      {/* <VideoPlayer /> */}
                     </div>
                   </div>
                 </div>
@@ -91,7 +89,7 @@ export default function Home() {
                     </div>
                     <h3 className="text-lg font-medium">Enter Your Idea</h3>
                     <p className="text-sm text-gray-500">
-                      Type in your content idea and select your target platform
+                      Type in your content idea for a professional LinkedIn post
                     </p>
                   </div>
                   <div className="flex flex-col items-center text-center space-y-2">
@@ -100,25 +98,25 @@ export default function Home() {
                     </div>
                     <h3 className="text-lg font-medium">AI Creates Content</h3>
                     <p className="text-sm text-gray-500">
-                      Our AI generates platform-optimized text, image, and preview
+                      Our AI generates LinkedIn-optimized text and matching image
                     </p>
                   </div>
                   <div className="flex flex-col items-center text-center space-y-2">
                     <div className="bg-blue-100 p-3 rounded-full">
                       <span className="text-blue-800 text-xl font-bold">3</span>
                     </div>
-                    <h3 className="text-lg font-medium">Post Directly</h3>
+                    <h3 className="text-lg font-medium">Review & Post</h3>
                     <p className="text-sm text-gray-500">
-                      Share your professional content directly to social media 
+                      Preview your content and post directly to LinkedIn with one click
                     </p>
                   </div>
                   <div className="flex flex-col items-center text-center space-y-2">
                     <div className="bg-blue-100 p-3 rounded-full">
                       <span className="text-blue-800 text-xl font-bold">4</span>
                     </div>
-                    <h3 className="text-lg font-medium">Create Media</h3>
+                    <h3 className="text-lg font-medium">Track Engagement</h3>
                     <p className="text-sm text-gray-500">
-                      Generate audio and video content for enhanced engagement
+                      Monitor how your professional content performs on LinkedIn
                     </p>
                   </div>
                 </div>

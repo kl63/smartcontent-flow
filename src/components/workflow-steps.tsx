@@ -9,10 +9,10 @@ const WorkflowSteps = () => {
 
   // Steps in the workflow process
   const steps = [
-    { id: 1, name: "Input Text", description: "Enter your content idea" },
-    { id: 2, name: "Generate Image", description: "AI creates matching visual" },
-    { id: 3, name: "Create Audio", description: "Convert text to speech" },
-    { id: 4, name: "Produce Video", description: "Combine into shareable video" },
+    { id: 1, name: "Content Idea", description: "Enter your LinkedIn topic" },
+    { id: 2, name: "Generate Content", description: "AI creates professional text" },
+    { id: 3, name: "Add Visuals", description: "Match with relevant image" },
+    { id: 4, name: "Post to LinkedIn", description: "Share directly via Make.com" },
   ];
 
   return (
