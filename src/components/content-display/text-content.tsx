@@ -13,10 +13,11 @@ const TextContent = () => {
   // Return null if no text content is available
   if (!content.text) return null;
 
-  const platformLabels = {
+  const platformLabels: Record<string, string> = {
     linkedin: "LinkedIn",
     tiktok: "TikTok",
     instagram: "Instagram",
+    twitter: "Twitter"
   };
 
   const handleCopy = () => {
