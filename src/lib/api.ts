@@ -23,12 +23,14 @@ export const isSpeechSynthesisAvailable = (): boolean => {
 };
 
 // Platform-specific prompts for text generation
-const platformPrompts = {
+const platformPrompts: Record<string, (idea: string) => string> = {
   linkedin: (idea: string) => `Create professional LinkedIn post about: ${idea}. Include relevant hashtags. Keep it under 150 words. Focus on business value and professional insights.`,
   
   tiktok: (idea: string) => `Create engaging TikTok script about: ${idea}. Include hook, key points, and call to action. Keep it under 60 seconds when spoken. Use casual, energetic language.`,
   
-  instagram: (idea: string) => `Create Instagram caption about: ${idea}. Include emojis and 5-7 relevant hashtags. Keep it under 100 words. Make it visually descriptive and engaging.`
+  instagram: (idea: string) => `Create Instagram caption about: ${idea}. Include emojis and 5-7 relevant hashtags. Keep it under 100 words. Make it visually descriptive and engaging.`,
+  
+  twitter: (idea: string) => `Create concise Twitter post about: ${idea}. Include 1-2 relevant hashtags. Keep it under 280 characters. Make it engaging and shareable.`
 };
 
 // Configure OpenAI API (safely access environment variables)
