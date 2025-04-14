@@ -77,23 +77,27 @@ export function isMakeConfigured(): boolean {
  * React hook to get and set the Make.com webhook URL
  */
 export function useMakeWebhookUrl() {
-  const [webhookUrl, setWebhookUrlState] = useState(MAKE_WEBHOOK_URL);
+  const [webhookUrl, setWebhookUrlState] = useState<string>(MAKE_WEBHOOK_URL || '');
   const [loading, setLoading] = useState(true);
   
   useEffect(() => {
+    // Load webhook URL from server or localStorage
     loadMakeWebhookUrl()
       .then(url => {
-        setWebhookUrlState(url);
+        if (url) {
+          setWebhookUrlState(url);
+        }
         setLoading(false);
       })
       .catch(() => setLoading(false));
   }, []);
   
   const setWebhookUrl = async (url: string) => {
+    // Allow immediate UI updates while saving in background
+    setWebhookUrlState(url);
+    
+    // Then save to server in the background
     const success = await saveMakeWebhookUrl(url);
-    if (success) {
-      setWebhookUrlState(url);
-    }
     return success;
   };
   

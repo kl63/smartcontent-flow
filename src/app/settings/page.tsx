@@ -177,8 +177,11 @@ export default function SettingsPage() {
                   <input
                     id="webhook-url"
                     type="text"
-                    value={webhookUrl}
-                    onChange={(e) => setWebhookUrl(e.target.value)}
+                    value={webhookUrl || ''}
+                    onChange={(e) => {
+                      // Directly update state first for responsive typing
+                      setWebhookUrl(e.target.value);
+                    }}
                     placeholder="https://hook.eu1.make.com/..."
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm"
                   />
