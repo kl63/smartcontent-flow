@@ -63,10 +63,11 @@ export const postToSocialMedia = async (
 export const getPlatformCharacterLimit = (platform: Platform): number => {
   const limits: Record<Platform, number> = {
     linkedin: 3000,
-    tiktok: 2200,
-    instagram: 2200,
-    twitter: 280,
-    facebook: 63206,
+    // Commented out other platforms as we're focusing only on LinkedIn
+    // tiktok: 2200,
+    // instagram: 2200,
+    // twitter: 280,
+    // facebook: 63206,
   };
   
   return limits[platform] || 1000; // Default to 1000 if platform not found
