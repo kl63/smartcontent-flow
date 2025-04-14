@@ -2,8 +2,39 @@
 
 import { Platform } from './store';
 
-// Your Zapier webhook URL
-const ZAPIER_WEBHOOK_URL = 'https://hooks.zapier.com/hooks/catch/14002250/20em4b9/';
+// Zapier webhook URL should be stored in environment variables, not hardcoded
+let ZAPIER_WEBHOOK_URL = '';
+
+// Function to load Zapier webhook URL from environment or settings
+async function loadZapierWebhookUrl(): Promise<string> {
+  // First check if it's in localStorage (for client-side)
+  if (typeof window !== 'undefined') {
+    const savedUrl = localStorage.getItem('zapierWebhookUrl');
+    if (savedUrl) {
+      ZAPIER_WEBHOOK_URL = savedUrl;
+      return savedUrl;
+    }
+  }
+  
+  // If not found in localStorage, could fetch from server API endpoint
+  // For now, return empty string until configured
+  return '';
+}
+
+// Function to save Zapier webhook URL to localStorage
+export async function saveZapierWebhookUrl(webhookUrl: string): Promise<boolean> {
+  try {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('zapierWebhookUrl', webhookUrl);
+      ZAPIER_WEBHOOK_URL = webhookUrl;
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error('Error saving Zapier webhook URL:', error);
+    return false;
+  }
+}
 
 /**
  * Service for handling Zapier webhook integration 
@@ -64,6 +95,11 @@ export async function postToSocialViaMCP(
     // Only proceed if we're posting to LinkedIn for now
     if (platform !== 'linkedin') {
       throw new Error(`Currently only LinkedIn posting is supported through Zapier`);
+    }
+    
+    // Load Zapier webhook URL if not already loaded
+    if (!ZAPIER_WEBHOOK_URL) {
+      await loadZapierWebhookUrl();
     }
     
     // Create payload for Zapier webhook
