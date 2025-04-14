@@ -8,6 +8,7 @@ import TextDisplay from '@/components/content-display/text-display';
 import ImageDisplay from '@/components/content-display/image-display';
 import AudioPlayer from '@/components/content-display/audio-player';
 import VideoPlayer from '@/components/content-display/video-player';
+import SocialPostPreview from '@/components/content-display/social-post-preview';
 import ApiKeySetup from '@/components/api-key-setup';
 import { useContentStore } from '@/lib/store';
 
@@ -25,10 +26,10 @@ export default function Home() {
         <div className="container max-w-5xl px-4 md:px-6">
           <div className="flex flex-col items-center text-center space-y-4 mb-8">
             <h1 className="text-3xl md:text-5xl font-bold tracking-tighter">
-              AI Media Maker
+              SmartContent Flow
             </h1>
             <p className="max-w-[700px] text-gray-500 md:text-lg/relaxed">
-              Transform your ideas into professional social media content for LinkedIn, TikTok, and Instagram in seconds.
+              Transform your ideas into professional social media content for LinkedIn, TikTok, Instagram and more in seconds.
             </p>
             
             <button 
@@ -63,6 +64,9 @@ export default function Home() {
                       {/* Image content */}
                       <ImageDisplay />
                       
+                      {/* Social Media Post Preview */}
+                      <SocialPostPreview />
+                      
                       {/* Audio player */}
                       <AudioPlayer />
                       
@@ -80,7 +84,7 @@ export default function Home() {
                 <CardTitle>How It Works</CardTitle>
               </CardHeader>
               <CardContent className="grid gap-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div className="flex flex-col items-center text-center space-y-2">
                     <div className="bg-blue-100 p-3 rounded-full">
                       <span className="text-blue-800 text-xl font-bold">1</span>
@@ -94,18 +98,27 @@ export default function Home() {
                     <div className="bg-blue-100 p-3 rounded-full">
                       <span className="text-blue-800 text-xl font-bold">2</span>
                     </div>
-                    <h3 className="text-lg font-medium">AI Does the Work</h3>
+                    <h3 className="text-lg font-medium">AI Creates Content</h3>
                     <p className="text-sm text-gray-500">
-                      Our AI generates platform-optimized text, image, and audio content
+                      Our AI generates platform-optimized text, image, and preview
                     </p>
                   </div>
                   <div className="flex flex-col items-center text-center space-y-2">
                     <div className="bg-blue-100 p-3 rounded-full">
                       <span className="text-blue-800 text-xl font-bold">3</span>
                     </div>
-                    <h3 className="text-lg font-medium">Share Your Content</h3>
+                    <h3 className="text-lg font-medium">Post Directly</h3>
                     <p className="text-sm text-gray-500">
-                      Download or share your professional content directly to social media
+                      Share your professional content directly to social media 
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-center text-center space-y-2">
+                    <div className="bg-blue-100 p-3 rounded-full">
+                      <span className="text-blue-800 text-xl font-bold">4</span>
+                    </div>
+                    <h3 className="text-lg font-medium">Create Media</h3>
+                    <p className="text-sm text-gray-500">
+                      Generate audio and video content for enhanced engagement
                     </p>
                   </div>
                 </div>

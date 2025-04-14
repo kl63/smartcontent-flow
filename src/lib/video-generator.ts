@@ -138,33 +138,39 @@ export const generateVideo = async (
     // Draw image on canvas with overlay and text
     const frameDataUrl = createFrameWithOverlay(img, opts, canvas, ctx);
     
+    // Convert data URL to a File object
+    const frameBlob = await fetch(frameDataUrl).then(r => r.blob());
+    const frameFile = new File([frameBlob], 'frame.jpg', { type: 'image/jpeg' });
+    
+    // Create a URL to the file
+    const frameUrl = URL.createObjectURL(frameFile);
+    
     // Report progress
     if (onProgress) onProgress(0.4);
     currentProgress = 0.4;
     
-    // Convert data URL to blob
-    const frameBlob = await window.fetch(frameDataUrl).then(res => res.blob());
+    // Use FFmpeg to process the frame and generate a video
     
-    // Create an object URL for the frame
-    const frameUrl = URL.createObjectURL(frameBlob);
+    // Write input frame to FFmpeg's virtual file system
+    await ffmpeg.writeFile('frame.jpg', await fetchFile(frameFile));
     
-    // Save the image to FFmpeg's virtual file system
-    ffmpeg.writeFile('frame.jpg', await fetchFile(frameUrl));
+    // Create a simplified approach - Generate video without trying to capture speech synthesis
+    // This is more reliable than trying to capture browser audio
     
     // Report progress
     if (onProgress) onProgress(0.6);
     currentProgress = 0.6;
     
-    // Create a simple video with FFmpeg
-    // This command will create a video that displays the image for the specified duration
+    // Create a video from the image (without audio for now)
     await ffmpeg.exec([
       '-loop', '1',
       '-i', 'frame.jpg',
       '-c:v', 'libx264',
-      '-t', opts.duration?.toString() || '10',
+      '-t', opts.duration ? opts.duration.toString() : '10',
       '-pix_fmt', 'yuv420p',
-      '-vf', 'scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2',
-      '-shortest',
+      '-movflags', '+faststart', // Add this flag to enable streaming playback
+      '-profile:v', 'baseline', // Use baseline profile for better compatibility
+      '-level', '3.0', // Set level for better compatibility
       'output.mp4'
     ]);
     

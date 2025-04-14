@@ -180,21 +180,31 @@ export const generateAudio = async (text: string): Promise<string> => {
   }
 };
 
-// Generate video by combining image and audio (mock implementation)
+// Generate video by combining image and audio (enhanced implementation)
 export const generateVideo = async (text: string, imageUrl: string, audioUrl: string): Promise<string> => {
   try {
     console.log('Generating video with:', { text, imageUrl, audioUrl });
     
-    // This is a mock implementation - in a real app, you would use a video creation API or library
-    // For now, we just return the image URL as a placeholder
+    // Import the video generator from our implementation
+    const { generateVideo: createVideoFromImageAndAudio, initFFmpeg } = await import('./video-generator');
     
-    // Simulate processing time with browser-safe timeout
-    if (isBrowser) {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-    }
+    // Initialize FFmpeg if needed
+    await initFFmpeg();
     
-    // Return the image URL as a placeholder for the video
-    return imageUrl;
+    // Generate the video with our implementation
+    const videoUrl = await createVideoFromImageAndAudio({
+      imageUrl: imageUrl,
+      text: text,
+      audioUrl: audioUrl,
+      duration: 10,
+      withAnimation: true,
+      platform: 'social',
+      outputFormat: 'mp4'
+    }, (progress: number) => {
+      console.log(`Video generation progress: ${Math.round(progress * 100)}%`);
+    });
+    
+    return videoUrl;
   } catch (error) {
     console.error('Video generation error:', error);
     throw new ApiError(

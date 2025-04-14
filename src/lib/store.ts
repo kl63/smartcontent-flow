@@ -1,12 +1,13 @@
 import { create } from 'zustand';
 
-export type Platform = 'linkedin' | 'tiktok' | 'instagram';
+export type Platform = 'linkedin' | 'tiktok' | 'instagram' | 'twitter' | 'facebook';
 
 export type ContentState = {
   text: string | null;
   image: string | null;
   audio: string | null;
   video: string | null;
+  socialPost: string | null;
 };
 
 type GenerationStatus = 'idle' | 'generating' | 'success' | 'error';
@@ -26,6 +27,7 @@ type ContentStore = {
     image: GenerationStatus;
     audio: GenerationStatus;
     video: GenerationStatus;
+    socialPost: GenerationStatus;
   };
   error: string | null;
   
@@ -48,6 +50,7 @@ const initialState = {
     image: null,
     audio: null,
     video: null,
+    socialPost: null,
   },
   currentStep: 0,
   status: {
@@ -55,6 +58,7 @@ const initialState = {
     image: 'idle' as GenerationStatus,
     audio: 'idle' as GenerationStatus,
     video: 'idle' as GenerationStatus,
+    socialPost: 'idle' as GenerationStatus,
   },
   error: null,
 };
@@ -73,6 +77,7 @@ export const useContentStore = create<ContentStore>((set) => ({
       image: 'idle',
       audio: 'idle',
       video: 'idle',
+      socialPost: 'idle',
     },
     error: null,
   }),
