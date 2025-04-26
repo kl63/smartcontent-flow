@@ -110,7 +110,7 @@ export function useMakeWebhookUrl() {
 export async function postToSocialViaMake(
   platform: Platform, 
   content: string, 
-  imageUrl?: string
+  imageUrl?: string | null
 ): Promise<MakeResponse> {
   console.log(`Posting to ${platform} via Make.com...`);
   
@@ -129,12 +129,12 @@ export async function postToSocialViaMake(
       // Simple format recommended by Make.com for LinkedIn posts
       text: content,
       url: "https://smartcontentflow.app",
-      post_type: imageUrl ? "image" : "text",
+      post_type: imageUrl !== null && imageUrl !== undefined ? "image" : "text",
       // No need for additional fields - keeping it simple
     };
     
     // Only include image_url if one is provided
-    if (imageUrl) {
+    if (imageUrl !== null && imageUrl !== undefined) {
       payload.image_url = imageUrl;
     }
     

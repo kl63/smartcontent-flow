@@ -38,32 +38,38 @@ export const SOCIAL_CONFIG = {
 export async function postToSocialMedia(
   platform: Platform,
   content: string,
-  imageUrl?: string,
+  imageUrl?: string | null,
   method?: PostingMethod
 ): Promise<{ success: boolean; message: string; data?: any }> {
-  // Use specified method or fall back to default
-  const postingMethod = method || SOCIAL_CONFIG.defaultMethod;
+  // Determine which method to use for posting
+  const postingMethod = method || SOCIAL_CONFIG.defaultMethod || 'direct';
   
-  console.log(`Posting to ${platform} using ${postingMethod} method...`);
+  console.log(`Posting to ${platform} via ${postingMethod}...`);
   
   try {
-    // For LinkedIn, use the direct API integration if possible
-    if (platform === 'linkedin' && postingMethod === 'direct') {
-      return await postToLinkedIn(content, imageUrl);
-    }
-    
-    // Use Make.com if configured and selected
+    // Post via Make.com (webhook)
     if (postingMethod === 'make' && SOCIAL_CONFIG.makeWebhookConfigured) {
       return await postToSocialViaMake(platform, content, imageUrl);
     }
     
-    // Use Buffer if configured and selected
+    // Post via Buffer
     if (postingMethod === 'buffer' && SOCIAL_CONFIG.bufferConfigured) {
       return await postToSocialViaBuffer(platform, content, imageUrl);
     }
     
-    // If no suitable method is available
-    throw new Error(`No suitable method available to post to ${platform}`);
+    // Direct posting to platform APIs
+    if (postingMethod === 'direct') {
+      // For LinkedIn, use the direct API integration if possible
+      if (platform === 'linkedin') {
+        return await postToLinkedIn(content, imageUrl);
+      }
+      
+      // If no suitable method is available
+      throw new Error(`No suitable method available to post to ${platform}`);
+    }
+    
+    // Default error if no posting method matched
+    throw new Error(`Unknown posting method: ${postingMethod}`);
     
   } catch (error) {
     console.error(`Error posting to ${platform}:`, error);

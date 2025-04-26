@@ -99,8 +99,8 @@ const SocialPostPreview: React.FC = () => {
       // Use our social media service to post content
       const result = await postToSocialMedia(
         selectedPlatform, 
-        content.text, 
-        includeImage ? content.image : null // Only send image if includeImage is true
+        content.text || '', 
+        includeImage && content.image ? content.image : undefined // Ensure both includeImage is true and content.image exists
       );
       
       if (result.success) {
