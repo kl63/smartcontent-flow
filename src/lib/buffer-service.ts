@@ -25,7 +25,7 @@ type BufferResponse = {
 export async function postToSocialViaBuffer(
   platform: Platform, 
   content: string, 
-  imageUrl?: string
+  imageUrl?: string | null
 ): Promise<BufferResponse> {
   console.log(`Posting to ${platform} via Buffer...`);
   
@@ -52,7 +52,7 @@ export async function postToSocialViaBuffer(
     const payload = {
       text: content,
       profile_ids: [profileId],
-      media: imageUrl ? { photo: imageUrl } : undefined,
+      media: imageUrl !== null && imageUrl !== undefined ? { photo: imageUrl } : undefined,
       // You can schedule for later by adding a "scheduled_at" parameter
     };
     

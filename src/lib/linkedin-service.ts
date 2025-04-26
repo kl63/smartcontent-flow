@@ -70,7 +70,7 @@ export function isLinkedInAuthenticated(): boolean {
  */
 export async function postToLinkedIn(
   content: string,
-  imageUrl?: string
+  imageUrl?: string | null
 ): Promise<{ success: boolean; message: string; data?: any }> {
   try {
     if (!isLinkedInAuthenticated()) {
@@ -92,8 +92,8 @@ export async function postToLinkedIn(
           shareCommentary: {
             text: content
           },
-          shareMediaCategory: imageUrl ? 'IMAGE' : 'NONE',
-          media: imageUrl ? [{
+          shareMediaCategory: imageUrl !== null && imageUrl !== undefined ? 'IMAGE' : 'NONE',
+          media: imageUrl !== null && imageUrl !== undefined ? [{
             status: 'READY',
             originalUrl: imageUrl
           }] : undefined
