@@ -4,7 +4,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useContentStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
-import { Download, RefreshCw } from "lucide-react";
+import { Download, RefreshCw, Eye, EyeOff } from "lucide-react";
 import { useEffect, useState } from "react";
 import { generateImage, ApiError } from "@/lib/api";
 import Image from "next/image";
@@ -15,10 +15,13 @@ const ImageDisplay = () => {
     status, 
     setContent, 
     setStatus,
-    setCurrentStep
+    setCurrentStep,
+    includeImage,
+    setIncludeImage
   } = useContentStore();
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [regenerateCount, setRegenerateCount] = useState(0);
   
   // Generate image when text is successfully generated
   useEffect(() => {
@@ -53,7 +56,7 @@ const ImageDisplay = () => {
     };
 
     generateImageContent();
-  }, [content.text, status.text, status.image, setContent, setStatus, setCurrentStep]);
+  }, [content.text, status.text, status.image, regenerateCount, setContent, setStatus, setCurrentStep]);
 
   const handleRegenerate = async () => {
     if (!content.text) return;
@@ -61,9 +64,8 @@ const ImageDisplay = () => {
     try {
       setErrorMessage(null);
       setStatus('image', 'generating');
-      const imageUrl = await generateImage(content.text);
-      setContent('image', imageUrl);
-      setStatus('image', 'success');
+      // Increment regenerate count to trigger the useEffect and get a new image
+      setRegenerateCount(prev => prev + 1);
     } catch (error) {
       if (typeof console !== 'undefined') {
         console.error('Error regenerating image:', error);
@@ -116,6 +118,10 @@ const ImageDisplay = () => {
     }
   };
 
+  const toggleIncludeImage = () => {
+    setIncludeImage(!includeImage);
+  };
+
   // Return null if not at the image generation step or if text hasn't been generated
   // IMPORTANT: Moved this condition AFTER all hook declarations to avoid React hooks errors
   if (!content.text || (status.image === 'idle' && status.text !== 'success')) {
@@ -128,6 +134,19 @@ const ImageDisplay = () => {
         <CardTitle className="text-lg flex items-center justify-between">
           <span>Generated Image</span>
           <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={toggleIncludeImage}
+              className="h-8 px-2 text-xs"
+              title={includeImage ? "Exclude image from post" : "Include image in post"}
+            >
+              {includeImage ? (
+                <><EyeOff className="h-4 w-4 mr-1" /> Hide in Post</>
+              ) : (
+                <><Eye className="h-4 w-4 mr-1" /> Show in Post</>
+              )}
+            </Button>
             <Button 
               variant="outline" 
               size="sm" 
@@ -162,13 +181,19 @@ const ImageDisplay = () => {
             </div>
           </div>
         ) : content.image ? (
-          <div className="w-full h-[300px] bg-gray-50 rounded-md overflow-hidden relative">
+          <div className={`w-full h-[300px] bg-gray-50 rounded-md overflow-hidden relative ${!includeImage ? 'opacity-50' : ''}`}>
+            {/* Use Next.js Image component for optimized image loading */}
             <Image 
               src={content.image} 
               alt="AI generated image" 
-              fill 
+              fill
               style={{ objectFit: 'cover' }}
             />
+            {!includeImage && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20">
+                <span className="px-2 py-1 bg-black bg-opacity-50 text-white rounded text-sm">Image excluded from post</span>
+              </div>
+            )}
           </div>
         ) : null}
       </CardContent>

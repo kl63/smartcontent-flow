@@ -125,13 +125,18 @@ export async function postToSocialViaMake(
     }
     
     // Create payload for Make.com webhook
-    const payload = {
+    const payload: any = {
       // Simple format recommended by Make.com for LinkedIn posts
       text: content,
-      image_url: imageUrl,
       url: "https://smartcontentflow.app",
+      post_type: imageUrl ? "image" : "text",
       // No need for additional fields - keeping it simple
     };
+    
+    // Only include image_url if one is provided
+    if (imageUrl) {
+      payload.image_url = imageUrl;
+    }
     
     console.log('Sending to Make.com:', payload);
     

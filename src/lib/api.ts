@@ -121,29 +121,136 @@ export const generateText = async (text: string, platform: Platform): Promise<st
   }
 };
 
-// Generate image based on text using Lorem Picsum (free, no API key needed)
+// Generate image based on text using OpenAI DALL-E
 export const generateImage = async (text: string): Promise<string> => {
+  if (!text) {
+    console.error('No text provided for image generation');
+    return 'https://images.pexels.com/photos/3184418/pexels-photo-3184418.jpeg'; // Default fallback
+  }
+
   try {
-    // Extract a seed number from the text for deterministic image selection
-    // This ensures similar content ideas get similar images
-    const textSeed = text.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const imageId = textSeed % 1000; // Limit to 1000 possible images
+    // Use OpenAI to generate an image prompt based on the text
+    const imagePrompt = await generateImagePrompt(text);
+    console.log('Generated image prompt:', imagePrompt);
     
-    // Set image dimensions
-    const width = 800;
-    const height = 600;
-    
-    // Create a Lorem Picsum URL with the seed
-    // This service provides free placeholder images without requiring an API key
-    const imageUrl = `https://picsum.photos/seed/${imageId}/${width}/${height}`;
-    
+    // Use OpenAI DALL-E to create an image
+    const imageUrl = await generateDallEImage(imagePrompt);
     return imageUrl;
   } catch (error) {
     console.error('Image generation error:', error);
     // Fallback to a default image in case of any errors
-    return 'https://picsum.photos/800/600';
+    return 'https://images.pexels.com/photos/3184418/pexels-photo-3184418.jpeg';
   }
 };
+
+// Generate a detailed prompt for DALL-E based on the text content
+async function generateImagePrompt(text: string): Promise<string> {
+  if (!OPENAI_API_KEY) {
+    throw new ApiError(
+      'OpenAI API key not configured. Please add your API key in the .env.local file.',
+      'openai_api_key_missing'
+    );
+  }
+
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${OPENAI_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: "gpt-3.5-turbo",
+        messages: [
+          { 
+            role: 'system', 
+            content: 'You are an image prompt engineer. Create a detailed, visual prompt for DALL-E to generate a professional LinkedIn-appropriate image based on the text. The prompt should focus on creating a high-quality, business-appropriate image that visually represents the concepts in the text. Keep the prompt under 50 words and focus on visual elements only.' 
+          },
+          { role: 'user', content: text }
+        ],
+        temperature: 0.7,
+        max_tokens: 100
+      })
+    });
+    
+    if (!response.ok) {
+      throw new ApiError(
+        `OpenAI API error: ${response.status} ${response.statusText}`,
+        'openai_api_error'
+      );
+    }
+    
+    const data = await response.json();
+    
+    if (!data.choices || data.choices.length === 0) {
+      throw new ApiError(
+        'No prompt generated from OpenAI',
+        'no_prompt_generated'
+      );
+    }
+    
+    return data.choices[0].message.content.trim();
+  } catch (error) {
+    console.error('Error generating image prompt:', error);
+    // Return a basic prompt as fallback
+    return 'Professional business concept, LinkedIn style, high quality';
+  }
+}
+
+// Generate image using DALL-E API
+async function generateDallEImage(prompt: string): Promise<string> {
+  if (!OPENAI_API_KEY) {
+    throw new ApiError(
+      'OpenAI API key not configured. Please add your API key in the .env.local file.',
+      'openai_api_key_missing'
+    );
+  }
+
+  try {
+    console.log('Generating DALL-E image with prompt:', prompt);
+    
+    // API request to DALL-E
+    const response = await fetch('https://api.openai.com/v1/images/generations', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${OPENAI_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: "dall-e-3",
+        prompt: prompt,
+        n: 1,
+        size: "1024x1024",
+        quality: "standard"
+      })
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('DALL-E API error:', errorData);
+      throw new ApiError(
+        `DALL-E API error: ${response.status} ${response.statusText}`,
+        'dalle_api_error'
+      );
+    }
+    
+    const data = await response.json();
+    
+    if (!data.data || data.data.length === 0) {
+      throw new ApiError(
+        'No image generated from DALL-E',
+        'no_image_generated'
+      );
+    }
+    
+    // Return the URL of the generated image
+    return data.data[0].url;
+  } catch (error) {
+    console.error('Error generating DALL-E image:', error);
+    // Fallback to a default image
+    return 'https://images.pexels.com/photos/3184418/pexels-photo-3184418.jpeg';
+  }
+}
 
 // Generate audio URL from text
 export const generateAudio = async (text: string): Promise<string> => {

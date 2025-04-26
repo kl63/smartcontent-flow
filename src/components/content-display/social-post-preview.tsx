@@ -52,7 +52,14 @@ const platformData: Record<string, PlatformData> = {
 };
 
 const SocialPostPreview: React.FC = () => {
-  const { content, status, selectedPlatform, setStatus, setCurrentStep } = useContentStore();
+  const { 
+    content, 
+    status, 
+    selectedPlatform, 
+    setStatus, 
+    setCurrentStep,
+    includeImage 
+  } = useContentStore();
   const [copied, setCopied] = useState(false);
   const [posted, setPosted] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
@@ -81,7 +88,9 @@ const SocialPostPreview: React.FC = () => {
   
   // Post to social media
   const handlePost = async () => {
-    if (!content.text || !content.image) return;
+    if (!content.text) return;
+    // Only require image if includeImage is true
+    if (includeImage && !content.image) return;
     
     setIsPosting(true);
     setPostError(null);
@@ -91,7 +100,7 @@ const SocialPostPreview: React.FC = () => {
       const result = await postToSocialMedia(
         selectedPlatform, 
         content.text, 
-        content.image
+        includeImage ? content.image : null // Only send image if includeImage is true
       );
       
       if (result.success) {
@@ -122,9 +131,10 @@ const SocialPostPreview: React.FC = () => {
   }, [selectedPlatform]);
   
   // Don't show anything if we're not at the right step or content isn't ready
-  if (!content.text || !content.image || 
+  if (!content.text || 
+      (includeImage && !content.image) || 
       status.text !== 'success' || 
-      status.image !== 'success') {
+      (includeImage && status.image !== 'success')) {
     return null;
   }
   
@@ -162,8 +172,8 @@ const SocialPostPreview: React.FC = () => {
               {content.text}
             </div>
             
-            {/* Image */}
-            {content.image && (
+            {/* Image - only show if includeImage is true */}
+            {includeImage && content.image && (
               <div className="rounded-md overflow-hidden relative aspect-video">
                 <Image 
                   src={content.image} 
@@ -207,7 +217,7 @@ const SocialPostPreview: React.FC = () => {
         {isConnected ? (
           <Button 
             onClick={handlePost} 
-            disabled={!content.text || !content.image || posted || isPosting}
+            disabled={!content.text || (includeImage && !content.image) || posted || isPosting}
             className="ml-auto"
           >
             {isPosting ? (

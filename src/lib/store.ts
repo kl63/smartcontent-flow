@@ -32,6 +32,9 @@ type ContentStore = {
   };
   error: string | null;
   
+  // Image settings
+  includeImage: boolean;
+  
   // Actions
   setContentIdea: (idea: string) => void;
   setSelectedPlatform: (platform: Platform) => void;
@@ -40,6 +43,7 @@ type ContentStore = {
   setStatus: (type: keyof ContentState, status: GenerationStatus) => void;
   setCurrentStep: (step: number) => void;
   setError: (error: string | null) => void;
+  setIncludeImage: (include: boolean) => void;
   reset: () => void;
 };
 
@@ -62,6 +66,7 @@ const initialState = {
     socialPost: 'idle' as GenerationStatus,
   },
   error: null,
+  includeImage: true,
 };
 
 export const useContentStore = create<ContentStore>((set) => ({
@@ -94,6 +99,8 @@ export const useContentStore = create<ContentStore>((set) => ({
   setCurrentStep: (step) => set({ currentStep: step }),
   
   setError: (error) => set({ error }),
+  
+  setIncludeImage: (include) => set({ includeImage: include }),
   
   reset: () => set(initialState),
 }));
